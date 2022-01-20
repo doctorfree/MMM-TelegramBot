@@ -44,7 +44,7 @@ Installer_checkOS () {
   debian=
   have_apt=`type -p apt-get`
   have_dpkg=`type -p dpkg`
-  have_rpm=`type -p rpm`
+  have_dnf=`type -p dnf`
   have_yum=`type -p yum`
   [ -f /etc/os-release ] && {
     id_like="$(cat /etc/os-release | grep ^ID_LIKE= | cut -f2 -d=)"
@@ -194,11 +194,16 @@ Installer_update () {
   then
     sudo apt-get update -y
   else
-    if [ "${have_yum}" ]
+    if [ "${have_dnf}" ]
     then
-      sudo yum makecache --refresh
+      sudo dnf makecache --refresh
     else
-      sudo apt-get update -y
+      if [ "${have_yum}" ]
+      then
+        sudo yum makecache --refresh
+      else
+        sudo apt-get update -y
+      fi
     fi
   fi
 }
@@ -221,9 +226,9 @@ Installer_is_installed () {
       fi
     fi
   else
-    if [ "${have_rpm}" ]
+    if [ "${have_dnf}" ]
     then
-      hash "$1" 2>/dev/null || (rpm -q "$1" > /dev/null 2>&1)
+      hash "$1" 2>/dev/null || (dnf list installed "$1" > /dev/null 2>&1)
     else
       if [ "${have_yum}" ]
       then
@@ -255,13 +260,13 @@ Installer_install () {
       fi
     fi
   else
-    if [ "${have_yum}" ]
+    if [ "${have_dnf}" ]
     then
-      sudo yum -y install $@
+      sudo dnf -y install $@
     else
-      if [ "${have_rpm}" ]
+      if [ "${have_yum}" ]
       then
-        sudo rpm -i $@
+        sudo yum -y install $@
       else
         sudo apt install $@
         sudo apt clean
@@ -288,13 +293,13 @@ Installer_remove () {
       fi
     fi
   else
-    if [ "${have_yum}" ]
+    if [ "${have_dnf}" ]
     then
-      sudo yum autoremove $@
+      sudo dnf autoremove $@
     else
-      if [ "${have_rpm}" ]
+      if [ "${have_yum}" ]
       then
-        sudo rpm -e $@
+        sudo yum autoremove $@
       else
         sudo apt-get autoremove --purge $@
       fi
